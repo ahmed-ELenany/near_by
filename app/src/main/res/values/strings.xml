@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">nearBy</string>
+    <string name="please_wait">Please wait....</string>
+    <string name="reload">Reload</string>
+</resources>
