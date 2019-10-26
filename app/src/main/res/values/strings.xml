@@ -2,4 +2,8 @@
     <string name="app_name">nearBy</string>
     <string name="please_wait">Please wait....</string>
     <string name="reload">Reload</string>
+    <string name="near_by">Near By</string>
+    <string name="realtime">RealTime</string>
+    <string name="no_internet">No Internet Connection Drag down to reload</string>
+    <string name="noData">No Data Found Drag down to reload</string>
 </resources>

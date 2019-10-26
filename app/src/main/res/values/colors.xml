@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimaryDark">#D4D4D4</color>
+    <color name="colorPrimaryDark">#FDA001</color>
     <color name="primary_light">#F68A1F</color>
     <color name="text_light">#DAF68A1F</color>
     <color name="primary_light_splash">#730948</color>
