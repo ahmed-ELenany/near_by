@@ -42,13 +42,9 @@ public class CustomListViewAdapter extends RecyclerView.Adapter<CustomListViewAd
     public void onBindViewHolder(final viewHolder holder, final int position) {
         holder.TvName.setText(datalist.name.get(position));
         holder.TvAddress.setText(datalist.address.get(position));
-//        Log.d("qawsedr",datalist.photo.get(position)+"");
-        //***=
-        if(datalist.photo.size()>0){
+        if(datalist.photo.size()>position&&!datalist.photo.get(position).isEmpty() ){
             Picasso.with(context).load(datalist.photo.get(position)).placeholder(R.drawable.picture).fit().into(holder.image);
         }
-        //****
-
     }
 
     //**********************************************************************************************************
