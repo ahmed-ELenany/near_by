@@ -1,13 +1,26 @@
 package com.example.nearby;
 
+import android.Manifest;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -23,7 +36,15 @@ import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 import com.example.nearby.listViewSearch.CustomListViewAdapter;
 import com.example.nearby.listViewSearch.DataList;
+import com.example.nearby.utils.Connectivity;
 import com.example.nearby.utils.TypefaceUtil;
+import com.example.nearby.utils.sharedPreferance.PrefManager;
+import com.example.nearby.utils.sharedPreferance.SharedPreference;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.gson.JsonArray;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -33,30 +54,63 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-
+    protected double latAfter, longAfter,latBefore,lonBefore;
     List<String> photo, name, id, address;
     DataList dataList;
     CustomListViewAdapter mAdapter;
     RecyclerView recyclerView;
     RelativeLayout layoutLoadig;
-    TextView progressTV;
+    TextView progressTV,realTimeState;
+    ProgressBar progressBar;
+    ImageView IvError;
     String basic_url = "https://api.foursquare.com/v2/venues/";
     String client_id = "CUYGFRFU0BHLA4HVACINGPXEUYJK4BR5PNHU1ECV2UMEI03Q";
     String client_secret = "IZ1AN01K0IMIEZPIOICJMAZBK0VHZTU0PA45Z5BZN0FQZT2C";
     String v = "20191024";
     String llAcc = "1000";
     int index = 0;
+    LatLng myLocation;
+    android.app.AlertDialog alert;
     private SwipeRefreshLayout swipeContainer;
-
+    private FusedLocationProviderClient mFusedLocationClient;
+    private SharedPreference sharedPreference;
+    private PrefManager prefManager;
+    String state="";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        TypefaceUtil.overrideFont(getApplicationContext(), "SERIF", "font/SourceSansPro-Light.ttf");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        TypefaceUtil.overrideFont(getApplicationContext(), "SERIF", "font/ArbFONTS-GE_SS_TWO_MEDIUM.otf");
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(getApplication());
         layoutLoadig = findViewById(R.id.LayoutLoading);
         progressTV = findViewById(R.id.progressTV);
-        progressTV = findViewById(R.id.progressTV);
+        progressBar = findViewById(R.id.progressBar);
+        IvError = findViewById(R.id.imageError);
         recyclerView = findViewById(R.id.recyclerView);
+        realTimeState = findViewById(R.id.realTimeState);
+        sharedPreference = new SharedPreference(this);
+        prefManager = new PrefManager(getApplication());
+         state = sharedPreference.preferences.getString("state", "");
+        if(state.isEmpty()|| state.equals("realTime")){
+            realTimeState.setText("realTime");
+            state="realTime";
+        }else{
+            realTimeState.setText("Single update");
+            state="Single update";
+        }
+        realTimeState.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (state.equals("realTime")){
+                    realTimeState.setText("Single update");
+                    state="Single update";
+                }else {
+                    realTimeState.setText("realTime");
+                    state="realTime";
+                }
+                sharedPreference.prefEditor.putString("state", state).apply();
+            }
+        });
         photo = new ArrayList<>();
         name = new ArrayList<>();
         id = new ArrayList<>();
@@ -69,7 +123,10 @@ public class MainActivity extends AppCompatActivity {
                 layoutLoadig.setVisibility(View.VISIBLE);
                 //connectionGetPlaces(basic_url,latitude,longitude,1000);
                 swipeContainer.setRefreshing(false);
-
+                IvError.setVisibility(View.GONE);
+                progressTV.setText(R.string.please_wait);
+                progressBar.setVisibility(View.VISIBLE);
+                getLocation();
             }
         });
         // Configure the refreshing colors
@@ -78,8 +135,118 @@ public class MainActivity extends AppCompatActivity {
                 android.R.color.holo_orange_light,
                 android.R.color.holo_red_light);
         ///////////////////////////////////////////////////////////////////////////////////////////
-        connectionGetPlaces(30.1083957, 31.3681733);
+        getLocation();
+    }
 
+    public void getLocation() {
+        if (checkLocationPermission()) {
+            checkGps();
+            mFusedLocationClient.getLastLocation()
+                    .addOnSuccessListener(this, new OnSuccessListener<Location>() {
+                        @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+                        @Override
+                        public void onSuccess(Location location) {
+                            if (location != null) {
+                                myLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                                latAfter = location.getLatitude();
+                                longAfter = location.getLongitude();
+                                if (Connectivity.isConnected(getApplicationContext())) {
+                                    if(latBefore==0 && lonBefore==0 ){
+                                        latBefore=latAfter;
+                                        lonBefore=longAfter;
+                                        connectionGetPlaces(latAfter, longAfter); //first call
+                                    }else if (state.equals("realTime")){
+                                        Location locBefore = new Location("");
+                                        locBefore.setLatitude(latBefore);
+                                        locBefore.setLongitude(lonBefore);
+                                        Location locAfter = new Location("");
+                                        locAfter.setLatitude(latAfter);
+                                        locAfter.setLongitude(longAfter);
+                                        float distanceInMeters = locBefore.distanceTo(locAfter);
+                                        if (distanceInMeters>=500){
+                                            connectionGetPlaces(latAfter, longAfter);
+                                        }
+                                    }
+
+                                } else {
+                                    progressBar.setVisibility(View.GONE);
+                                    progressTV.setText(R.string.no_internet);
+                                    IvError.setVisibility(View.VISIBLE);
+                                    IvError.setImageDrawable(getDrawable(R.drawable.cloud_problem));
+                                }
+                                Log.d("location", location.getLatitude() + location.getLongitude() + "");
+                            } else {
+                                checkGps();
+                            }
+                        }
+                    });
+        }
+    }
+
+    public boolean checkLocationPermission() {
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            // Asking user if explanation is needed
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.ACCESS_FINE_LOCATION)) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                        99);
+
+            } else {
+                // No explanation needed, we can request the permission.
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                        99);
+            }
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case 99: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    getLocation();
+                } else {
+                    getLocation();
+                }
+            }
+
+        }
+    }
+
+    void checkGps() {
+        LocationManager locationManager = (LocationManager) getApplication().getSystemService(LOCATION_SERVICE);
+        assert locationManager != null;
+        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            showGPSDisabledAlertToUser();
+        }
+    }
+
+    private void showGPSDisabledAlertToUser() {
+        android.app.AlertDialog.Builder alertDialogBuilder = new android.app.AlertDialog.Builder(MainActivity.this);
+        alertDialogBuilder.setMessage("GPS is disabled in your device. Would you like to enable it?")
+                .setCancelable(false)
+                .setPositiveButton("Goto Settings Page To Enable GPS",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                Intent callGPSSettingIntent = new Intent(
+                                        android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                                startActivity(callGPSSettingIntent);
+                                dialog.cancel();
+                            }
+                        });
+
+        alert = alertDialogBuilder.create();
+        alert.show();
     }
 
     public String getDataJason(String JsonStr) /////this is method we call from Background method
@@ -90,9 +257,7 @@ public class MainActivity extends AppCompatActivity {
         final String TAG_venue = "venue";
         final String TAG_id = "id";
         final String TAG_location = "location";
-        final String TAG_address = "address";
-        final String TAG_city = "city";
-        final String TAG_state = "state";
+        final String TAG_address = "formattedAddress";
         final String TAG_name = "name";
         JSONObject jsonObject = new JSONObject(JsonStr);
         JSONObject jsonObjectResponse = jsonObject.getJSONObject(TAG_response);
@@ -105,8 +270,12 @@ public class MainActivity extends AppCompatActivity {
                 String strId = jsonObjectVenue.getString(TAG_id);
                 id.add(strId);
                 name.add(jsonObjectVenue.getString(TAG_name));
-                address.add(jsonObjectLocation.getString(TAG_address));
-
+                JSONArray jsonArrayAddress=jsonObjectLocation.getJSONArray(TAG_address);
+                String addressFormatter="";
+                for(int y=0;y<jsonArrayAddress.length();y++){
+                    addressFormatter=addressFormatter+"-"+jsonArrayAddress.getString(y);
+                }
+                address.add(addressFormatter);
             }
         }
         dataList = new DataList(id, photo, name, address);
@@ -127,21 +296,25 @@ public class MainActivity extends AppCompatActivity {
         photo.clear();
         address.clear();
         RequestQueue requestQueue = Volley.newRequestQueue(getApplication());
-        String url = basic_url + "explore?client_id=" + client_id + "&client_secret=" + client_secret + "&v=" + v + "&ll=" + latitude + "," + longitude + "&llAcc=" + llAcc;
+        final String url = basic_url + "explore?client_id=" + client_id + "&client_secret=" + client_secret + "&v=" + v + "&ll=" + latitude + "," + longitude + "&llAcc=" + llAcc;
         RequestQueue queue = Volley.newRequestQueue(this);
         JsonObjectRequest getRequest = new JsonObjectRequest(Request.Method.GET, url, null,
                 new Response.Listener<JSONObject>() {
+                    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
                     @Override
                     public void onResponse(JSONObject response) {
                         // display response
+                        Log.d("url", url);
                         Log.d("Response", response.toString());
                         try {
                             getDataJason(response.toString());
                             layoutLoadig.setVisibility(View.GONE);
                         } catch (JSONException e) {
                             e.printStackTrace();
-                            layoutLoadig.setVisibility(View.VISIBLE);
-                            progressTV.setText("جارى التحميل لاعادة... التحميل اسحب لاسفل");
+                            progressBar.setVisibility(View.GONE);
+                            IvError.setVisibility(View.VISIBLE);
+                            IvError.setImageDrawable(getDrawable(R.drawable.warning));
+                            progressTV.setText(R.string.noData);
                         }
                     }
                 },
@@ -189,7 +362,7 @@ public class MainActivity extends AppCompatActivity {
         JSONArray jsonOArrayItems = jsonOpjectPhoto.getJSONArray(TAG_items);
         JSONObject dataItems = jsonOArrayItems.getJSONObject(0);
         String url = dataItems.getString(TAG_prefix) + dataItems.getString(TAG_width) + "x" + dataItems.getString(TAG_height) + dataItems.getString(TAG_suffix);
-        Log.d("azsx",url);
+        Log.d("azsx", url);
         photo.add(url);
         index = index + 1;
         if (id.size() > index) {
@@ -212,15 +385,15 @@ public class MainActivity extends AppCompatActivity {
                             getPhotsDataJason(response.toString());
                             layoutLoadig.setVisibility(View.GONE);
                         } catch (JSONException e) {
+                            Toast.makeText(getApplication(),"errorType quota_exceeded",Toast.LENGTH_LONG).show();
                             e.printStackTrace();
-                            layoutLoadig.setVisibility(View.VISIBLE);
-                            progressTV.setText("جارى التحميل لاعادة... التحميل اسحب لاسفل");
                         }
                     }
                 },
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
+                        Toast.makeText(getApplication(),"errorType quota_exceeded",Toast.LENGTH_LONG).show();
                         Log.d("Error.Response", error + "");
                     }
                 }
