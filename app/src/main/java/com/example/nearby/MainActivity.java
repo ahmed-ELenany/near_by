@@ -38,13 +38,12 @@ import com.example.nearby.listViewSearch.CustomListViewAdapter;
 import com.example.nearby.listViewSearch.DataList;
 import com.example.nearby.utils.Connectivity;
 import com.example.nearby.utils.TypefaceUtil;
-import com.example.nearby.utils.sharedPreferance.PrefManager;
-import com.example.nearby.utils.sharedPreferance.SharedPreference;
+import com.example.nearby.utils.PrefManager;
+import com.example.nearby.utils.SharedPreference;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.gson.JsonArray;
 
 import org.json.JSONArray;
 import org.json.JSONException;
