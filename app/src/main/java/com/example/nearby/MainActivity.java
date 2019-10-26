@@ -346,7 +346,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public String getPhotsDataJason(String JsonStr) /////this is method we call from Background method
+    public void getPhotsDataJason(String JsonStr) /////this is method we call from Background method
             throws JSONException {
         final String TAG_response = "response";
         final String TAG_photos = "photos";
@@ -359,15 +359,19 @@ public class MainActivity extends AppCompatActivity {
         JSONObject jsonObjectResponse = jsonObject.getJSONObject(TAG_response);
         JSONObject jsonOpjectPhoto = jsonObjectResponse.getJSONObject(TAG_photos);
         JSONArray jsonOArrayItems = jsonOpjectPhoto.getJSONArray(TAG_items);
-        JSONObject dataItems = jsonOArrayItems.getJSONObject(0);
-        String url = dataItems.getString(TAG_prefix) + dataItems.getString(TAG_width) + "x" + dataItems.getString(TAG_height) + dataItems.getString(TAG_suffix);
-        Log.d("azsx", url);
+        String url;
+        if(jsonOArrayItems.length()>0){
+            JSONObject dataItems = jsonOArrayItems.getJSONObject(0);
+             url = dataItems.getString(TAG_prefix) + dataItems.getString(TAG_width) + "x" + dataItems.getString(TAG_height) + dataItems.getString(TAG_suffix);
+        }else {
+            url="";
+        }
         photo.add(url);
         index = index + 1;
         if (id.size() > index) {
             getPhoto(id.get(index));
         }
-        return url;
+        mAdapter.notifyDataSetChanged();
     }
 
     public void getPhoto(String id) {
