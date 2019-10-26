@@ -43,16 +43,16 @@
                     android:layout_gravity="center"
                     android:gravity="start"
                     android:textColor="#131313"
-                    android:textSize="16sp" />
+                    android:textSize="18sp" />
                 <TextView
                     android:id="@+id/TvAddress"
                     android:layout_width="match_parent"
-                    android:layout_height="35dp"
+                    android:layout_height="match_parent"
                     android:layout_gravity="center"
                     android:gravity="start"
                     android:layout_marginTop="5dp"
                     android:textColor="#444444"
-                    android:textSize="12sp" />
+                    android:textSize="14sp" />
             </LinearLayout>
 
 

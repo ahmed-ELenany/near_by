@@ -5,32 +5,33 @@
     android:layout_height="match_parent"
     android:background="#fff"
     tools:context=".MainActivity">
-
-    <include layout="@layout/tool_bar" />
-<LinearLayout
+    <RelativeLayout
     android:layout_width="match_parent"
-    android:layout_height="50dp">
+    android:layout_height="55dp"
+    android:background="@color/primary_light">
     <TextView
         android:id="@+id/toolbar_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Near By"
-        android:gravity="center"
+        android:text="@string/near_by"
+        android:layout_centerInParent="true"
         android:textColor="#fff"
-        android:textSize="18sp" />
+        android:textSize="22sp" />
     <TextView
         android:id="@+id/realTimeState"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="RealTime"
-        android:layout_gravity="center"
-        android:textColor="#0FC0FF"
-        android:textSize="14sp" />
-</LinearLayout>
+        android:text="@string/realtime"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
+        android:layout_marginEnd="10dp"
+        android:textColor="#000000"
+        android:textSize="18sp" />
+</RelativeLayout>
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="50dp"
+        android:layout_marginTop="55dp"
         android:background="#fff">
         <LinearLayout
             android:layout_width="match_parent"
@@ -48,6 +49,7 @@
         android:id="@+id/LayoutLoading"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_marginTop="55dp"
         android:background="#fff">
         <androidx.swiperefreshlayout.widget.SwipeRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:id="@+id/swipeContainer"
@@ -64,7 +66,14 @@
                     android:layout_height="wrap_content"
                     android:layout_centerHorizontal="true"
                     android:layout_centerVertical="true" />
-
+           <ImageView
+               android:id="@+id/imageError"
+               android:layout_width="110dp"
+               android:layout_height="110dp"
+               android:layout_centerHorizontal="true"
+               android:layout_above="@id/progressTV"
+               android:visibility="gone"
+               android:src="@drawable/cloud_problem"/>
                 <TextView
                     android:id="@+id/progressTV"
                     android:layout_width="match_parent"
@@ -76,6 +85,7 @@
                     android:paddingEnd="10dp"
                     android:text="@string/please_wait"
                     android:textAlignment="center"
+                    android:textSize="18sp"
                     android:textColor="#bdbdbd" />
             </RelativeLayout>
         </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
